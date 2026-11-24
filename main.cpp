@@ -113,7 +113,7 @@ static const MathSheet SHEETS[12] = {
 };
 static const int NSHEETS = 12;
 
-enum State { MENU, PLAY, WIN, LOSE };
+enum State { MENU, PLAY, REST, WIN, LOSE };
 
 static const char* QUIP[2][3] = {
     {"Gollum: No more numbers. Let us sit in the shade.",
@@ -299,6 +299,7 @@ int main() {
         float t = (float)GetTime();
         bool moving = false, loud = false;
         float nearest = 1e9f;
+         int ROOM_X_POS=LH.x,ROOM_Z_POS=LH.z-4;
 
         if (state != PLAY) {
             if (IsKeyPressed(KEY_ONE)) diff = 0;
@@ -392,6 +393,7 @@ int main() {
                 float dx = px - c.x, dz = pz - c.z, d = hypotf(dx, dz);
                 if (d < c.r + 0.5f && d > 0.0001f) { px = c.x + dx / d * (c.r + 0.5f); pz = c.z + dz / d * (c.r + 0.5f); }
             }
+            float rd=hypotf(px-ROOM_X_POS.x,pz-ROOM_Z_POS.z);
 
             // Collect all 12 information sheets. Each opens a lesson and an exercise.
             for (int i=0;i<NSHEETS;i++) {
@@ -513,6 +515,28 @@ int main() {
         EndMode3D();
 
         int W = GetScreenWidth(), Hs = GetScreenHeight();
+        if(state == REST) {
+             DrawRectangle(0, 0, W, Hs, Fade({70, 80, 50, 255}, (1 - bal) * 0.45f));
+            if (gol > 0) DrawRectangle(0, 0, W, Hs, Fade({150, 110, 60, 255}, 0.25f * gol));
+            if (ech > 0) DrawRectangle(0, 0, W, Hs, Fade({255, 120, 160, 255}, 0.12f * ech));
+            // photo "body": swaps with each step; hunched when gollumized, ghosted when echoing
+            Texture2D b = tex[foot], g2 = tex[foot ^ 1];
+            float sc = Hs * 0.5f / b.height;
+            float dw = b.width * sc * (1 + 0.08f * ech), dh = b.height * sc * (1 - 0.2f * gol);
+            float bob = moving ? sinf(t * 9.f) * 5.f : 0.f;
+            float bx = (W - dw) / 2, by = Hs - dh + bob;
+            Color body = {255, (unsigned char)(255 - 70 * gol), (unsigned char)(255 - 140 * gol), 255};
+            if (ech > 0.05f)
+                DrawTexturePro(g2, {0, 0, (float)g2.width, (float)g2.height}, {bx - 30 * ech, by, dw, dh}, {0, 0}, 0, Fade(PINK, 0.35f * ech));
+            DrawTexturePro(b, {0, 0, (float)b.width, (float)b.height}, {bx, by, dw, dh}, {0, 0}, 0, body);
+
+            DrawRectangle(0, 0, W, Hs, Fade({42, 0, 16, 255}, std::max(0.f, 1.f - nearest / 14.f) * 0.55f));
+                        drawText("Main objective: keep the karma in the green"+"\n"+"while resting doing the activities that better karma bring."+ "\n"+
+                        "Once rested competelly you will be redirected to the action",
+                         (float)W-230, 12, 22, RAYWHITE);
+
+            
+        }
         if (state == PLAY) {
             // soul tints: Gollum = sick green-grey, gollumized = sepia, echo = rosy glow
             DrawRectangle(0, 0, W, Hs, Fade({70, 80, 50, 255}, (1 - bal) * 0.45f));
